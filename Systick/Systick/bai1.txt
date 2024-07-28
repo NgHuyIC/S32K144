@@ -1,0 +1,83 @@
+/**
+ * @file    main.c
+ * @brief   Main application for toggling GPIO using SysTick
+ * @details This file contains the main application code for initializing and toggling a GPIO pin using SysTick for delays.
+ */
+
+/*==================================================================================================
+ *                                        INCLUDE FILES
+ ==================================================================================================*/
+#include "Gpio.h"
+#include "Systick_Registers.h"
+#include "PORT_Register.h"
+
+/*==================================================================================================
+ *                          LOCAL TYPEDEFS (STRUCTURES, UNIONS, ENUMS)
+ ==================================================================================================*/
+
+/*==================================================================================================
+ *                                       LOCAL MACROS
+ ==================================================================================================*/
+#define PCC_PORTD      *(unsigned int*)(0x40065000u + 0x130)
+#define SYST_CSR_COUNTFLAG (1U<<16)
+
+/*==================================================================================================
+ *                                      LOCAL CONSTANTS
+ ==================================================================================================*/
+
+/*==================================================================================================
+ *                                      LOCAL VARIABLES
+ ==================================================================================================*/
+
+/*==================================================================================================
+ *                                      GLOBAL CONSTANTS
+ ==================================================================================================*/
+
+/*==================================================================================================
+ *                                      GLOBAL VARIABLES
+ ==================================================================================================*/
+
+/*==================================================================================================
+ *                                   LOCAL FUNCTION PROTOTYPES
+ ==================================================================================================*/
+void delay_500ms();
+
+/*==================================================================================================
+ *                                       LOCAL FUNCTIONS
+ ==================================================================================================*/
+/**
+ * @brief Delays for approximately 500 milliseconds.
+ * @details This function uses the SysTick timer to create a delay of 500 milliseconds.
+ */
+void delay_500ms() {
+    for (int i = 0; i < 2; i++) {
+        SYST->SYST_CSR = 0x00000000;           // Disable SysTick
+        SYST->SYST_RVR = 0x005B8D7F;           // Set reload register value for 500ms delay (24 MHz clock)
+        SYST->SYST_CVR = 0x00000000;           // Clear current value register
+        SYST->SYST_CSR = 0x00000001;           // Enable SysTick
+        while ((SYST->SYST_CSR & SYST_CSR_COUNTFLAG) == 0); // Wait for COUNTFLAG to be set
+    }
+}
+
+/*==================================================================================================
+ *                                       GLOBAL FUNCTIONS
+ ==================================================================================================*/
+
+/**
+ * @brief Main function
+ * @details This function initializes the GPIO pin and toggles it every 500 milliseconds.
+ * @return int - Standard return type for main function.
+ */
+int main() {
+    PCC_PORTD |= (1 << 30);                    // Enable clock for PORTD
+    PORTD->PCR[16] = (1 << 8);                 // Set PORTD pin 16 as GPIO
+
+     Gpio_Init(GPIOD, 16, 1);     
+
+    while (1) {
+        GPIO_ToggleOutputPin(GPIOD, 16);       // Toggle the output pin
+        delay_500ms();                         // Delay for 500 milliseconds
+    }
+
+    return 0;                                  // Standard return statement for main
+}

@@ -1,0 +1,96 @@
+/**
+ * @file    main.c
+ * @brief   Main application for toggling GPIO using SysTick
+ * @details This file contains the main application code for initializing and toggling a GPIO pin using SysTick for delays.
+ */
+
+/*==================================================================================================
+ *                                        INCLUDE FILES
+ ==================================================================================================*/
+#include "Systick_Registers.h"
+#include "Gpio.h"
+#include "Gpio_Registers.h"
+#include "PORT_Register.h"
+
+/*==================================================================================================
+ *                          LOCAL TYPEDEFS (STRUCTURES, UNIONS, ENUMS)
+ ==================================================================================================*/
+
+/*==================================================================================================
+ *                                       LOCAL MACROS
+ ==================================================================================================*/
+#define PCC_PORTD      *(unsigned int*)(0x40065000u + 0x130)
+#define SYST_CSR_COUNTFLAG (1U<<16)
+
+/*==================================================================================================
+ *                                      LOCAL CONSTANTS
+ ==================================================================================================*/
+
+/*==================================================================================================
+ *                                      LOCAL VARIABLES
+ ==================================================================================================*/
+volatile unsigned char state = 0;
+
+/*==================================================================================================
+ *                                      GLOBAL CONSTANTS
+ ==================================================================================================*/
+
+/*==================================================================================================
+ *                                      GLOBAL VARIABLES
+ ==================================================================================================*/
+
+/*==================================================================================================
+ *                                   LOCAL FUNCTION PROTOTYPES
+ ==================================================================================================*/
+void Systick_init();
+
+/*==================================================================================================
+ *                                       LOCAL FUNCTIONS
+ ==================================================================================================*/
+
+/**
+ * @brief SysTick Handler
+ * @details Interrupt service routine for SysTick. Toggles the GPIO pin when the state is 2.
+ */
+void SysTick_Handler(void) {
+    while (state == 2) {
+        state = 0;
+        GPIO_ToggleOutputPin(GPIOD, 15);
+    }
+    state++;
+}
+
+/**
+ * @brief Initialize SysTick
+ * @details Configures SysTick timer for periodic interrupts.
+ */
+void Systick_init() {
+    SYST->SYST_CSR = 0x00000000;       // Disable SysTick
+    SYST->SYST_RVR = 0x00B71AFF;       // Set reload register value for desired time base
+    SYST->SYST_CVR = 0x00000000;       // Clear current value register
+    SYST->SYST_CSR = 0x00000007;       // Enable SysTick with interrupts
+}
+
+/*==================================================================================================
+ *                                       GLOBAL FUNCTIONS
+ ==================================================================================================*/
+
+/**
+ * @brief Main function
+ * @details Main function to initialize GPIO and SysTick, and enter an infinite loop.
+ * @return int - Standard return type for main function.
+ */
+int main() {
+    PCC_PORTD |= (1 << 30);            // Enable clock for PORTD
+    PORTD->PCR[15] = (1 << 8);         // Set PORTD pin 15 as GPIO
+
+    Gpio_Init(GPIOD, 15, 1);   
+
+    Systick_init();                    // Initialize SysTick
+
+    while (1) {
+        // Infinite loop to keep the program running
+    }
+
+    return 0;                          // Standard return statement for main
+}
