@@ -1,77 +1,72 @@
 /**
-*   @file    LPIT.c
-*   @brief   Low Power Interrupt Timer (LPIT) Initialization and Usage
-*   @details This file contains functions to initialize and use the LPIT module for timing purposes.
-*/
+ * @file    bai5_CLockout_2Mhz.c
+ * @brief   Configures the CLKOUT to output a 2 MHz clock signal.
+ * @details This file contains a function to configure the CLKOUT pin to output a 2 MHz clock signal 
+ *          using the System OSC (SOSC_CLK). The function sets the appropriate dividers and clock source
+ *          to achieve this frequency.
+ */
 
 /*==================================================================================================
-*                                        INCLUDE FILES
+ *                                        INCLUDE FILES
 ==================================================================================================*/
-#include "LPIT_Registers.h"
+#include "SCG_Registers.h"
+#include "Clock.h"
 
 /*==================================================================================================
-*                          LOCAL TYPEDEFS (STRUCTURES, UNIONS, ENUMS)
-==================================================================================================*/
-
-/*==================================================================================================
-*                                       LOCAL MACROS
-==================================================================================================*/
-#define PCC_LPIT            *(unsigned int*)(0X40065000u + 0xDC)
-
-/*==================================================================================================
-*                                      LOCAL CONSTANTS
+ *                          LOCAL TYPEDEFS (STRUCTURES, UNIONS, ENUMS)
 ==================================================================================================*/
 
 /*==================================================================================================
-*                                      LOCAL VARIABLES
+ *                                       LOCAL MACROS
 ==================================================================================================*/
 
 /*==================================================================================================
-*                                      GLOBAL CONSTANTS
+ *                                      LOCAL CONSTANTS
 ==================================================================================================*/
 
 /*==================================================================================================
-*                                      GLOBAL VARIABLES
+ *                                      LOCAL VARIABLES
 ==================================================================================================*/
-volatile unsigned long int startLoop;
-volatile unsigned long int endLoop;
 
 /*==================================================================================================
-*                                   LOCAL FUNCTION PROTOTYPES
+ *                                      GLOBAL CONSTANTS
 ==================================================================================================*/
-void LPIT_init(void);
 
 /*==================================================================================================
-*                                       LOCAL FUNCTIONS
+ *                                      GLOBAL VARIABLES
 ==================================================================================================*/
 
+/*==================================================================================================
+ *                                   LOCAL FUNCTION PROTOTYPES
+==================================================================================================*/
+
+/*==================================================================================================
+ *                                       LOCAL FUNCTIONS
+==================================================================================================*/
+
+/*==================================================================================================
+ *                                       GLOBAL FUNCTIONS
+==================================================================================================*/
 /**
- * @brief   Initializes the LPIT module.
- * @details This function enables the clock for the LPIT module and sets up the timer channel 0.
+ * @brief   Configures the CLKOUT pin to output a 2 MHz clock signal.
+ * @details This function sets up the CLKOUT pin to output a 2 MHz clock signal by selecting the System 
+ *          OSC (SOSC_CLK) as the clock source and configuring the SOSC divider to divide by 4. This 
+ *          results in a clock frequency of 2 MHz (8 MHz / 4).
+ *
  * @return  void
  */
-void LPIT_init(void) {
-    PCC_LPIT = 0x47000000;           /* Enable clock for LPIT
-                                        Clock Src = 7: LPO128_CLK */
-    LPIT->MCR = 0x00000009;          /* DBG_EN = 1: Run in Debug mode
-                                        M_CEN = 1: Module Clock Enable */
-    LPIT->TCTRL0 = 0x00000001;       /* MODE = 00: 32-bit Periodic Counter
-                                        T_EN = 1: Enable Timer Channel */
-}
+void configure_CLKOUT(void) {
+    /* Configure CLKOUT to use the System OSC (SOSC_CLK) */
+    SCG->CLKOUTCNFG = 0x01000000;
+    /*
+     * CLKOUTSEL = 0001: Select System OSC (SOSC_CLK) as the CLKOUT source
+     */
 
-/*==================================================================================================
-*                                       GLOBAL FUNCTIONS
-==================================================================================================*/
-/**
- * @brief   Main function.
- * @details This function initializes the LPIT module, starts the timer, and then measures the time
- *          taken for a loop execution.
- * @return  int
- */
-int main(void) {
-    LPIT_init();
-    startLoop = LPIT->CVAL0;
-    for (int i = 0; i < 100000; i++);
-    endLoop = LPIT->CVAL0;
-    while (1) {}
+    /* Configure the SOSC divider to divide by 4 */
+    SCG->SOSCDIV = 0x00000003;
+    /*
+     * SOSCDIV1 = 0000: Divide by 1
+     * SOSCDIV2 = 0011: Divide by 4
+     * Resulting frequency = 8 MHz / 4 = 2 MHz
+     */
 }

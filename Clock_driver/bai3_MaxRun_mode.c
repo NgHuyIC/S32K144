@@ -1,77 +1,75 @@
 /**
-*   @file    LPIT.c
-*   @brief   Low Power Interrupt Timer (LPIT) Initialization and Usage
-*   @details This file contains functions to initialize and use the LPIT module for timing purposes.
-*/
+ * @file    bai3_MaxRun_mode.c
+ * @brief   Main function for clock configuration in Normal Run mode
+ * @details This file contains the function to configure the system clock to 80 MHz using the System PLL (SPLL).
+ */
 
 /*==================================================================================================
-*                                        INCLUDE FILES
+ *                                        INCLUDE FILES
 ==================================================================================================*/
-#include "LPIT_Registers.h"
+#include "SCG_Registers.h"
+#include "Clock.h"
 
 /*==================================================================================================
-*                          LOCAL TYPEDEFS (STRUCTURES, UNIONS, ENUMS)
-==================================================================================================*/
-
-/*==================================================================================================
-*                                       LOCAL MACROS
-==================================================================================================*/
-#define PCC_LPIT            *(unsigned int*)(0X40065000u + 0xDC)
-
-/*==================================================================================================
-*                                      LOCAL CONSTANTS
+ *                          LOCAL TYPEDEFS (STRUCTURES, UNIONS, ENUMS)
 ==================================================================================================*/
 
 /*==================================================================================================
-*                                      LOCAL VARIABLES
+ *                                       LOCAL MACROS
 ==================================================================================================*/
 
 /*==================================================================================================
-*                                      GLOBAL CONSTANTS
+ *                                      LOCAL CONSTANTS
 ==================================================================================================*/
 
 /*==================================================================================================
-*                                      GLOBAL VARIABLES
+ *                                      LOCAL VARIABLES
 ==================================================================================================*/
-volatile unsigned long int startLoop;
-volatile unsigned long int endLoop;
 
 /*==================================================================================================
-*                                   LOCAL FUNCTION PROTOTYPES
+ *                                      GLOBAL CONSTANTS
 ==================================================================================================*/
-void LPIT_init(void);
 
 /*==================================================================================================
-*                                       LOCAL FUNCTIONS
+ *                                      GLOBAL VARIABLES
 ==================================================================================================*/
 
+/*==================================================================================================
+ *                                   LOCAL FUNCTION PROTOTYPES
+==================================================================================================*/
+
+/*==================================================================================================
+ *                                       LOCAL FUNCTIONS
+==================================================================================================*/
+
+/*==================================================================================================
+ *                                       GLOBAL FUNCTIONS
+==================================================================================================*/
 /**
- * @brief   Initializes the LPIT module.
- * @details This function enables the clock for the LPIT module and sets up the timer channel 0.
+ * @brief   Configures the system clock to 80 MHz in Normal Run mode.
+ * @details This function initializes the System PLL to 160 MHz using the `SPLL_init_160Mhz()` function.
+ *          It then configures the SCG to use the system PLL as the clock source and sets the core, bus,
+ *          and slow clock dividers to achieve an 80 MHz system clock.
+ *
  * @return  void
  */
-void LPIT_init(void) {
-    PCC_LPIT = 0x47000000;           /* Enable clock for LPIT
-                                        Clock Src = 7: LPO128_CLK */
-    LPIT->MCR = 0x00000009;          /* DBG_EN = 1: Run in Debug mode
-                                        M_CEN = 1: Module Clock Enable */
-    LPIT->TCTRL0 = 0x00000001;       /* MODE = 00: 32-bit Periodic Counter
-                                        T_EN = 1: Enable Timer Channel */
-}
+void NormaRUNmode_80MHz(void)
+{
+    /* Initialize the System PLL to 160 MHz */
+    SPLL_init_160Mhz();
 
-/*==================================================================================================
-*                                       GLOBAL FUNCTIONS
-==================================================================================================*/
-/**
- * @brief   Main function.
- * @details This function initializes the LPIT module, starts the timer, and then measures the time
- *          taken for a loop execution.
- * @return  int
- */
-int main(void) {
-    LPIT_init();
-    startLoop = LPIT->CVAL0;
-    for (int i = 0; i < 100000; i++);
-    endLoop = LPIT->CVAL0;
-    while (1) {}
+    /* Configure the SCG to use the system PLL and set clock dividers */
+    SCG->RCCR = 0x06010012;
+    /*
+     * SCS = 0110: System PLL (SPLL_CLK) is the system clock source
+     * DIVCORE = 0001: Divide core clock by 2
+     * DIVBUS = 0001: Divide bus clock by 2
+     * DIVSLOW = 0010: Divide slow clock by 3
+     */
+
+    /* Wait for the system clock source to be set to SPLL */
+    while (((SCG->CSR & SCG_CSR_SCS_MASK) >> SCG_CSR_SCS_SHIFT) != 6)
+    {
+        /* Do nothing, just wait */
+    }
 }

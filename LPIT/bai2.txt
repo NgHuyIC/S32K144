@@ -1,8 +1,10 @@
 /**
-*   @file    
-*   @brief   
-*   @details 
+*   @file    LPIT.c
+*   @brief   Low Power Interrupt Timer (LPIT) Initialization and Usage
+*   @details This file contains functions to initialize and use the LPIT module for timing purposes,
+*            as well as configuring and using GPIO for toggling.
 */
+
 /*==================================================================================================
 *                                        INCLUDE FILES
 ==================================================================================================*/
@@ -20,7 +22,7 @@
 ==================================================================================================*/
 #define PCC_LPIT            *(unsigned int*)(0X40065000u + 0xDC)
 #define PCC_PORTD           *(unsigned int*)(0x40065000u + 0x130)
-#define CLK_Source           128000000
+#define CLK_Source          128000000
 
 /*==================================================================================================
 *                                      LOCAL CONSTANTS
@@ -37,72 +39,59 @@
 /*==================================================================================================
 *                                      GLOBAL VARIABLES
 ==================================================================================================*/
-volatile unsigned long int startLoop ;
+volatile unsigned long int startLoop;
 volatile unsigned long int endLoop;
+
 /*==================================================================================================
 *                                   LOCAL FUNCTION PROTOTYPES
 ==================================================================================================*/
-void LPIT_init ();
+void LPIT_init(void);
+
 /*==================================================================================================
 *                                       LOCAL FUNCTIONS
 ==================================================================================================*/
 
-void LPIT_init () {
+/**
+ * @brief   Initializes the LPIT module.
+ * @details This function enables the clock for the LPIT module, sets up timer channel 2, and enables its interrupt.
+ * @return  void
+ */
+void LPIT_init(void) {
     PCC_LPIT = 0xC7000000;           /* Enable clock for LPIT
-                                         Clock Src = 7: LPO128_CLK        */
+                                        Clock Src = 7: LPO128_CLK */
     LPIT->MCR = 0x00000009;          /* DBG_EN = 1: Run in Debug mode
-                                         M_CEN = 1: Module Clock Enable   */
-	LPIT->MIER = 0x00000004;         /* TIE2 = 1: Enable Channel 2 Timer Interrupt */
-	LPIT->TVAL2 = 64000 - 1;         /* Set Timer value */
-
+                                        M_CEN = 1: Module Clock Enable */
+    LPIT->MIER = 0x00000004;         /* TIE2 = 1: Enable Channel 2 Timer Interrupt */
+    LPIT->TVAL2 = 64000 - 1;         /* Set Timer value */
     LPIT->TCTRL2 = 0x00000001;       /* MODE = 00: 32-bit Periodic Counter
-                                         T_EN = 1: Enable Timer Channel 2 */
+                                        T_EN = 1: Enable Timer Channel 2 */
 }
+
 /*==================================================================================================
 *                                       GLOBAL FUNCTIONS
 ==================================================================================================*/
 /**
-* @brief          
-* @details        
-*
-* @param[in]      
-*                             
-*
-* @return         void
-*
-*
-* @pre            
-* @post           
-*
-* @api
-*
-*/
-int main(){
-	NVIC_EnableInterrupt(LPIT0_Ch2_IRQn); // Enable NVIC interrupt for LPIT Channel 2
+ * @brief   Main function.
+ * @details This function initializes the LPIT module, enables NVIC interrupt for LPIT channel 2,
+ *          and configures GPIO for toggling.
+ * @return  int
+ */
+int main(void) {
+    NVIC_EnableInterrupt(LPIT0_Ch2_IRQn); // Enable NVIC interrupt for LPIT Channel 2
     LPIT_init();
     PCC_PORTD |= (1 << 30);               // Enable clock for PORTD
-    PORTD->PCR[15] = (1 << 8);           // Set PORTD pin 15 as GPIO
+    PORTD->PCR[15] = (1 << 8);            // Set PORTD pin 15 as GPIO
 
-    Gpio_Init(GPIOD, 15, 1);             // Initialize GPIO pin 15 on PORTD as output
-    while(1);
+    Gpio_Init(GPIOD, 15, 1);              // Initialize GPIO pin 15 on PORTD as output
+    while (1);
 }
+
 /**
-* @brief          
-* @details        
-*
-* @param[in]      
-*                             
-*
-* @return         void
-*
-*
-* @pre            
-* @post           
-*
-* @api
-*
-*/
+ * @brief   LPIT Channel 2 Interrupt Handler.
+ * @details This function handles the interrupt for LPIT channel 2 by clearing the interrupt flag and toggling GPIO pin 15.
+ * @return  void
+ */
 void LPIT0_Ch2_IRQHandler(void) {
     LPIT->MSR = 0x00000004;               // Clear interrupt flag for Channel 2
-    GPIO_ToggleOutputPin(GPIOD, 15);     // Toggle GPIO pin 15 on PORTD
+    GPIO_ToggleOutputPin(GPIOD, 15);      // Toggle GPIO pin 15 on PORTD
 }

@@ -1,8 +1,10 @@
 /**
-*   @file    
-*   @brief   
-*   @details 
+*   @file    LPIT.c
+*   @brief   Low Power Interrupt Timer (LPIT) Initialization and Usage
+*   @details This file contains functions to initialize and use the LPIT module for timing purposes,
+*            as well as updating time in seconds, minutes, and hours.
 */
+
 /*==================================================================================================
 *                                        INCLUDE FILES
 ==================================================================================================*/
@@ -10,6 +12,7 @@
 #include "nvic.h"
 #include "Gpio.h"
 #include "PORT_Register.h"
+
 /*==================================================================================================
 *                          LOCAL TYPEDEFS (STRUCTURES, UNIONS, ENUMS)
 ==================================================================================================*/
@@ -19,7 +22,7 @@
 ==================================================================================================*/
 #define PCC_LPIT            *(unsigned int*)(0X40065000u + 0xDC)
 #define PCC_PORTD           *(unsigned int*)(0x40065000u + 0x130)
-#define CLK_Source           128000u
+#define CLK_Source          128000u
 
 /*==================================================================================================
 *                                      LOCAL CONSTANTS
@@ -37,20 +40,22 @@
 *                                      GLOBAL VARIABLES
 ==================================================================================================*/
 unsigned int seconds = 0, minutes = 0, hours = 0;
+
 /*==================================================================================================
 *                                   LOCAL FUNCTION PROTOTYPES
 ==================================================================================================*/
-void LPIT_init ();
-void update_time();
+void LPIT_init(void);
+void update_time(void);
+
 /*==================================================================================================
 *                                       LOCAL FUNCTIONS
 ==================================================================================================*/
+
 /**
-*   @file    
-*   @brief   
-*   @details 
+* @brief   Updates the time variables.
+* @details This function increments the seconds counter and handles overflow to minutes and hours.
 */
-void update_time() {
+void update_time(void) {
     seconds++;
     if (seconds >= 60) {
         seconds = 0;
@@ -64,57 +69,44 @@ void update_time() {
         }
     }
 }
+
 /**
-*   @file    
-*   @brief   
-*   @details 
+* @brief   Initializes the LPIT module.
+* @details This function enables the clock for the LPIT module, sets up timer channel 3, and enables its interrupt.
 */
-void LPIT_init() {
+void LPIT_init(void) {
     PCC_LPIT = 0xC7000000;           /* Enable clock for LPIT
-                                         Clock Src = 7: LPO128_CLK        */
+                                         Clock Src = 7: LPO128_CLK */
     LPIT->MCR = 0x00000009;          /* DBG_EN = 1: Run in Debug mode
-                                         M_CEN = 1: Module Clock Enable   */
-    LPIT->MIER = 0x00000008;         /* TIE2 = 1: Enable Channel 2 Timer Interrupt */
+                                         M_CEN = 1: Module Clock Enable */
+    LPIT->MIER = 0x00000008;         /* TIE3 = 1: Enable Channel 3 Timer Interrupt */
     LPIT->TVAL3 = CLK_Source - 1;    /* Set Timer value */
     LPIT->TCTRL3 = 0x00000001;       /* MODE = 00: 32-bit Periodic Counter
-                                         T_EN = 1: Enable Timer Channel 2 */
+                                         T_EN = 1: Enable Timer Channel 3 */
 }
 
-void LPIT_init () {
-	 PCC_LPIT = 0x47000000;           /*  Enable clock for LPIT
-	                                      Clock Src = 7: LPO128_CLK        */
-	 LPIT->MCR = 0x00000009;         /*   DBG_EN = 1: Run in Debug mode
-                                        M_CEN = 1: Module Clock Enable	 */
-	 LPIT->TCTRL0 = 0x00000001;      /*   MODE = 00: 32-bit Periodic Counter 
-	                                      T_EN = 1: Enable Timer Channel   */ 
- }
 /*==================================================================================================
 *                                       GLOBAL FUNCTIONS
 ==================================================================================================*/
+
 /**
-* @brief          
-* @details        
-*
-* @param[in]      
-*                             
-*
-* @return         void
-*
-*
-* @pre            
-* @post           
-*
-* @api
-*
+* @brief   Main function.
+* @details This function initializes the LPIT module and enters an infinite loop.
+* @return  int
 */
-int main() {
-    NVIC_EnableInterrupt(LPIT0_Ch3_IRQn); // Enable NVIC interrupt for LPIT Channel 2
+int main(void) {
+    NVIC_EnableInterrupt(LPIT0_Ch3_IRQn); // Enable NVIC interrupt for LPIT Channel 3
     LPIT_init();
     while (1) {
         // Main loop can be used for other tasks if necessary
     }
 }
+
+/**
+* @brief   LPIT Channel 3 Interrupt Handler.
+* @details This function handles the interrupt for LPIT channel 3 by clearing the interrupt flag and updating the time.
+*/
 void LPIT0_Ch3_IRQHandler(void) {
-    LPIT->MSR = 0x00000008; // Clear interrupt flag
+    LPIT->MSR = 0x00000008; // Clear interrupt flag for Channel 3
     update_time();
 }
